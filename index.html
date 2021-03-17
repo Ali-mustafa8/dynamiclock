@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+
+<head>
+    <title> oCanvas.js demo </title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: #ffffff;
+            margin-left: 250px;
+            padding: 0;
+            overflow: hidden;
+
+        }
+
+        #myCanvas {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            width: 800px;
+            height: 480px;
+            background-color: blue;
+        }
+    </style>
+    <script src="https://code.createjs.com/easeljs-0.8.0.min.js">  </script>
+</head>
+
+<body onload="init();">
+    <div style="position:absolute;left:400px;top:500px;">
+        <input type="button" value="Reset Synch" onClick="clicked()" />
+    </div>
+    <canvas id="demoCanvas" width="800" height="480" />
+
+    <script>
+
+        var canvas = document.getElementById("demoCanvas");
+        var width = canvas.width;
+        var height = canvas.height;
+        var xClocks = 24;
+        var yClocks = 13;
+        var xDiameter = parseInt(width / xClocks);
+        var yDiameter = parseInt(height / yClocks);
+        var lineWidth = 2;
+        var synCount = 0;
+
+        var setTime = null; //use to indicate the that timer to display the clock is set
+        var clearTime = null; //used to indicate that a ten second timer has been set to clear the time
+
+        var diameter = xDiameter > yDiameter ? yDiameter : xDiameter;
+        var radius = (diameter - lineWidth) / 2;
+        var startX = radius;
+        var startY = radius;
+
+        var xOffset = parseInt((width - diameter * xClocks) / 2);
+        var yOffset = parseInt((height - diameter * yClocks) / 2);
+
+        var stage = new createjs.Stage("demoCanvas");
+        var container = new createjs.Container();
+        var containerCircles = new createjs.Container();
+        var containerHands = new createjs.Container();
+        var rectangle = new createjs.Shape();
+
+        var lastMinsNow = -1;
+        var lastHoursNow = -1;
+
+        myClocks = new Array();
+
+        //   │ ┐ └ ─ ┘ ┌
+
+        var zero = [
+            ['┌', '─', '─', '─', '┐'],
+            ['│', '┌', '─', '┐', '│'],
+            ['│', '│', '/', '│', '│'],
+            ['│', '│', '/', '│', '│'],
+            ['│', '└', '─', '┘', '│'],
+            ['└', '─', '─', '─', '┘']
+        ];
+        var one = [
+            ['/', '┌', '─', '┐', '/'],
+            ['/', '└', '┐', '│', '/'],
+            ['/', '/', '│', '│', '/'],
+            ['/', '/', '│', '│', '/'],
+            ['/', '┌', '┘', '└', '┐'],
+            ['/', '└', '─', '─', '┘']
+        ];
+        var two = [
+            ['┌', '─', '─', '─', '┐'],
+            ['└', '─', '─', '┐', '│'],
+            ['┌', '─', '─', '┘', '│'],
+            ['│', '┌', '─', '─', '┘'],
+            ['│', '└', '─', '─', '┐'],
+            ['└', '─', '─', '─', '┘']
+        ];
+        var three = [
+            ['┌', '─', '─', '─', '┐'],
+            ['└', '─', '─', '┐', '│'],
+            ['┌', '─', '─', '┘', '│'],
+            ['└', '─', '─', '┐', '│'],
+            ['┌', '─', '─', '┘', '│'],
+            ['└', '─', '─', '─', '┘']
+        ];
+        var four = [
+            ['┌', '┐', '/', '/', '/'],
+            ['│', '│', '/', '/', '/'],
+            ['│', '│', '┌', '┐', '/'],
+            ['│', '└', '┘', '└', '┐'],
+            ['└', '─', '┐', '┌', '┘'],
+            ['/', '/', '└', '┘', '/']
+        ];
+        var five = [
+            ['┌', '─', '─', '─', '┐'],
+            ['│', '┌', '─', '─', '┘'],
+            ['│', '└', '─', '─', '┐'],
+            ['└', '─', '─', '┐', '│'],
+            ['┌', '─', '─', '┘', '│'],
+            ['└', '─', '─', '─', '┘']
+        ];
+        var six = [
+            ['┌', '─', '─', '─', '┐'],
+            ['│', '┌', '─', '─', '┘'],
+            ['│', '└', '─', '─', '┐'],
+            ['│', '┌', '─', '┐', '│'],
+            ['│', '└', '─', '┘', '│'],
+            ['└', '─', '─', '─', '┘']
+        ];
+        var seven = [
+            ['┌', '─', '─', '─', '┐'],
+            ['└', '─', '─', '┐', '│'],
+            ['/', '/', '/', '│', '│'],
+            ['/', '/', '/', '│', '│'],
+            ['/', '/', '/', '│', '│'],
+            ['/', '/', '/', '└', '┘']
+        ];
+        var eight = [
+            ['┌', '─', '─', '─', '┐'],
+            ['│', '┌', '─', '┐', '│'],
+            ['│', '└', '─', '┘', '│'],
+            ['│', '┌', '─', '┐', '│'],
+            ['│', '└', '─', '┘', '│'],
+            ['└', '─', '─', '─', '┘']
+        ];
+        var nine = [
+            ['┌', '─', '─', '─', '┐'],
+            ['│', '┌', '─', '┐', '│'],
+            ['│', '└', '─', '┘', '│'],
+            ['└', '─', '─', '┐', '│'],
+            ['/', '/', '/', '│', '│'],
+            ['/', '/', '/', '└', '┘']
+        ];
+        var dots = [
+            ['/', '/', '/', '/'],
+            ['/', '┌', '┐', '/'],
+            ['/', '└', '┘', '/'],
+            ['/', '┌', '┐', '/'],
+            ['/', '└', '┘', '/'],
+            ['/', '/', '/', '/']
+        ];
+
+        var digits = [zero, one, two, three, four, five, six, seven, eight, nine, dots];
+
+
+
+
+
+        function init() {
+
+            rectangle.graphics.setStrokeStyle(lineWidth).beginStroke(getRandomColor(), getRandomColor(), getRandomColor());
+            rectangle.graphics.rect(0, 0, width, height);
+
+            //container.addChild(rectangle);
+            //stage.addChild(container);
+
+            lastTime = new Date();
+            clockCounter = 0;//assign unique ID to each clock, for debugging mainly
+
+            for (i = 0; i < xClocks; i++) {
+
+                myClocks[i] = new Array();
+                //handsOriginCommands=new Array();
+
+                for (j = 0; j < yClocks; j++) {
+
+                    myClocks[i][j] = new Clock(diameter * i + startX + lineWidth + xOffset,
+                        diameter * j + startY + lineWidth + yOffset,
+                        radius, 2, "gray", 2, 20, "black");
+                    containerCircles.addChild(myClocks[i][j].getCircle());
+                    containerHands.addChild(myClocks[i][j].getMinuteHand());
+                    containerHands.addChild(myClocks[i][j].getHourHand());
+                    myClocks[i][j].setTime(i * 13, j * 13);
+                    myClocks[i][j].setSynch(true);
+                    myClocks[i][j].setHourHandStyle("black");
+                    myClocks[i][j].clockInstance = clockCounter++;
+                }
+            }
+            //alert("clock total:"+ clockCounter);
+
+            //myClocks[1][0].setCircleStyle("#F00000");
+            stage.addChild(containerCircles);
+            stage.addChild(containerHands);
+
+            stage.update();
+            createjs.Ticker.addEventListener("tick", handleTick);
+            //get ready to update time, should be every minute 60,000
+            setTime = setTimeout("updateTime()", 1000);
+
+            //   │ ┐ └ ─ ┘ ┌
+            //jsonvals=JSON.parse(getHandsFromChar('┌'));
+            //alert(jsonvals.hours + " : " + jsonvals.minutes);
+
+        }
+
+        function updateTime() {
+            //setTime=null;
+            console.log("UpdateTime called");
+            clearTime = null;
+
+            timeNow = new Date();
+            minsNow = timeNow.getMinutes();
+            hoursNow = timeNow.getHours();
+            theDigits = [1, 2, 3, 4];
+
+
+            if (lastHoursNow != -1) {
+                lastMinsNow = minsNow;
+                lastHoursNow = hoursNow;
+
+            }
+
+            if (minsNow > 9) {
+                minsTens = theDigits[2] = parseInt(minsNow.toString().substr(0, 1));
+                minsUnits = theDigits[3] = parseInt(minsNow.toString().substr(1, 1));
+
+            } else {
+                minsTens = theDigits[2] = 0;
+                minsUnits = theDigits[3] = parseInt(minsNow.toString().substr(0, 1));
+            }
+
+            if (hoursNow > 9) {
+                hoursTens = theDigits[0] = parseInt(hoursNow.toString().substr(0, 1));
+                hoursUnits = theDigits[1] = parseInt(hoursNow.toString().substr(1, 1));
+            } else {
+                hoursTens = theDigits[0] = 0;
+                hoursUnits = theDigits[1] = parseInt(hoursNow.toString().substr(0, 1));
+            }
+
+            //console.log(hoursTens + "." + hoursUnits + " : " + minsTens + minsUnits);
+
+            lastMinsNow = minsNow;
+            lastHoursNow = hoursNow;
+
+
+            //set all clocks to '-' then change them in a bit
+            for (i = 0; i < xClocks; i++) {
+                for (j = 0; j < 13; j++) {
+                    myClocks[i][j].setTimeToShow('/');
+                    myClocks[i][j].setSynch(false);
+                }
+            }
+
+            //update the 5 digit fields
+            for (i = 0; i < xClocks; i++) {
+                for (j = 3; j < 9; j++) {
+                    if (i <= 4) {//First digit
+                        myClocks[i][j].setTimeToShow(digits[hoursTens][j - 3][i]);
+                        //if(i==0)document.writeln("i:"+ (i) +" j:"+ (j-3) + " char:"+ digits[hoursTens][j-3][i]+"</br>");
+                    } else if (i <= 9) {//second digit
+                        myClocks[i][j].setTimeToShow(digits[hoursUnits][j - 3][i - 5]);
+                        //document.writeln("i:"+ (i-5) +" j:"+ (j-3) + " char:"+ digits[hoursUnits][j-3][i-5]+"</br>");
+                    } else if (i <= 13) {//dots
+                        myClocks[i][j].setTimeToShow(digits[10][j - 3][i - 10]);
+                        //document.writeln("i:"+ (i-10) +" j:"+ (j-3) + " char:"+ digits[10][j-3][i-10]);
+                    } else if (i <= 18) {//third digit
+                        myClocks[i][j].setTimeToShow(digits[minsTens][j - 3][i - 14]);
+                    } else if (i <= 23) {//fourth digit
+                        myClocks[i][j].setTimeToShow(digits[minsUnits][j - 3][i - 19]);
+                    }
+                }
+            }
+            console.log("updated the times");
+
+            clearTime = setTimeout("clearShowTime()", 20000);
+        }
+
+        function handleTick(event) {
+            //console.log(myClocks);
+            // Actions carried out each tick (aka frame)
+
+
+            if (setTime == null) {
+                setTime = setTimeout("updateTime()", 25000);
+                console.log("set update time");
+            }
+
+            if (!event.paused) {
+                // Actions carried out when the Ticker is not paused.
+                var allSynched = true;
+                for (i = 0; i < xClocks; i++) {
+                    for (j = 0; j < yClocks; j++) {
+                        synchedUp = myClocks[i][j].update();
+                        //console.log(synchedUp);
+                        if (!synchedUp)
+                            allSynched = false;
+                    }
+                }
+
+                if (allSynched) {
+                    //console.log("we are synchd");
+                    for (i = 0; i < xClocks; i++) {
+                        for (j = 0; j < yClocks; j++) {
+                            myClocks[i][j].setSynch(false);
+                        }
+                    }
+                }
+                stage.update();
+            }
+        }
+
+        function clearShowTime() {
+            //set a random pattern maybe
+            this.synch = true;
+            for (i = 0; i < xClocks; i++) {
+                for (j = 0; j < 13; j++) {
+                    myClocks[i][j].clearTimeToShow();
+                }
+            }
+            setTime = null;
+        }
+
+        //Define class for clock
+        function Clock(x, y, radius, borderWidth, borderColour, handWidth, handLength, handColour) {
+
+            this.clockInstance = 0;
+            this.circle = new createjs.Shape();
+            this.fillCommand = this.circle.graphics.setStrokeStyle(borderWidth).beginStroke(borderColour).command;
+            this.circle.graphics.drawCircle(0, 0, radius);
+            this.circle.x = x;
+            this.circle.y = y;
+            this.radius = radius;
+            this.displayTimeSynched = false;
+            this.inSync = false;
+
+            this.showTime = false;
+            this.stopminutes = 0;
+            this.stophours = 0;
+
+            this.frameRate = 30;
+            this.hours = 0; //degrees
+            this.lastHours = this.hours;
+            this.minutes = 45; //degrees
+            this.lastMinutes = this.minutes;
+
+            this.revolutionTime = 6; //seconds
+            this.minuteStep = 2;
+            this.hourStep = 1; //720/ this.revolutionTime/this.frameRate;
+
+            this.handLength = handLength
+            this.minuteHand = new createjs.Shape();
+            this.minuteHandFillCommand = this.minuteHand.graphics.setStrokeStyle(handWidth).beginStroke(handColour).command;
+            this.minuteHand.graphics.moveTo(x, y);
+            this.minuteHandCommand = this.minuteHand.graphics.lineTo(x + radius * Math.cos(this.minutes * (Math.PI / 180)), y + radius * Math.sin(this.minutes * (Math.PI / 180))).command;
+
+            this.hourHand = new createjs.Shape();
+            this.hourHandFillCommand = this.hourHand.graphics.setStrokeStyle(handWidth).beginStroke(handColour).command;
+            this.hourHand.graphics.moveTo(x, y);
+            this.hourHandCommand = this.hourHand.graphics.lineTo(x + radius * Math.cos(this.hours * (Math.PI / 180)), y + radius * Math.sin(this.hours * (Math.PI / 180))).command;
+            //console.log(Math.cos(this.minutes * (Math.PI/180)));
+        }
+
+        Clock.prototype.setHourHand = function () {
+            if (this.showTime && (Math.abs(parseInt(this.hours) - parseInt(this.stopHours)) < 2)) {
+                this.displayTimeSynched = true;
+            } else {
+                this.displayTimeSynched = false;
+                this.hourHandCommand.x = this.circle.x + this.radius * Math.cos(this.hours * (Math.PI / 180));
+                this.hourHandCommand.y = this.circle.y + this.radius * Math.sin(this.hours * (Math.PI / 180));
+                this.lastHours = this.hours;
+                this.hours += this.hourStep;
+                if (this.hours >= 360)
+                    this.hours -= 360;
+            }
+            //console.log("tick");
+        }
+
+        Clock.prototype.setMinuteHand = function () {
+            if (this.clockInstance == 310) {
+                //debug a specific clock
+            }
+            if (this.showTime && (Math.abs(parseInt(this.lastMinutes - this.stopMinutes)) < 3)) {
+                //do nothing
+                this.displayTimeSynched = true;
+                //console.log(this.clockInstance+":"+this.lastHours + ":"+this.lastMinutes + "stops:"+this.stopHours+":"+this.stopMinutes + "sync:"+this.synch+"   Math.abs(parseInt(this.lastMinutes-this.stopMinutes)):"+Math.abs(parseInt(this.lastMinutes-this.stopMinutes)));
+            } else {
+                this.displayTimeSynched = false;
+                if ((this.synch && Math.abs(parseInt(this.lastHours - this.minutes)) == 180) || (this.synch && this.inSync)) {
+                    this.minuteHandCommand.x = this.circle.x - this.radius * Math.cos(this.lastHours * (Math.PI / 180));
+                    this.minuteHandCommand.y = this.circle.y - this.radius * Math.sin(this.lastHours * (Math.PI / 180));
+                    this.minutes = this.lastHours + 180;
+                    this.lastMinutes = this.minutes;
+                    this.inSync = true;
+
+                    //console.log("setMinuteHand"+this.minutes);
+
+                } else {
+                    this.minuteHandCommand.x = this.circle.x + this.radius * Math.cos(this.minutes * (Math.PI / 180));
+                    this.minuteHandCommand.y = this.circle.y + this.radius * Math.sin(this.minutes * (Math.PI / 180));
+                    this.lastMinutes = this.minutes;
+                    this.minutes += this.minuteStep;
+                    if (this.minutes >= 360)
+                        this.minutes -= 360;
+                    this.inSync = false;
+                }
+            }
+            //console.log("tick");
+        }
+
+        Clock.prototype.clearTimeToShow = function () {
+            this.showTime = false; // this flag tells the class to stop at the determined time
+            console.log("clear time");
+            settime = null;
+        }
+
+        Clock.prototype.setTimeToShow = function (newTime) {
+            this.showTime = true; // this flag tells the class to stop at the determined time
+            theseTimes = JSON.parse(getHandsFromChar(newTime));
+            this.stopMinutes = theseTimes.minutes;
+            this.stopHours = theseTimes.hours;
+            console.log(".");
+        }
+
+        Clock.prototype.update = function () {
+
+            this.setHourHand();
+            this.setMinuteHand();
+            return this.inSync;
+        }
+
+        Clock.prototype.setSynch = function (status) {
+            this.synch = status;
+            if (!status) this.inSynch = status;
+        }
+
+        /*
+        Clock.prototype.setMinuteHand = function(){
+        this.minuteHandCommand.style=style;
+        }
+         */
+
+        Clock.prototype.setTime = function (hours, minutes) {
+            this.hours = hours;
+            this.minutes = minutes;
+            //console.log(this.hours);
+        }
+
+        Clock.prototype.getCircle = function () {
+            return this.circle;
+        }
+
+        Clock.prototype.getFillCommand = function () {
+            return this.fillCommand;
+        }
+
+        Clock.prototype.getX = function () {
+            return this.circle.x;
+        }
+
+        Clock.prototype.getY = function () {
+            return this.circle.y;
+        }
+
+        Clock.prototype.getMinuteHand = function () {
+            return this.minuteHand;
+        }
+
+        Clock.prototype.minuteHandFillCommand = function () {
+            return this.minuteHandFillCommand;
+        }
+
+        Clock.prototype.getHourHand = function () {
+            return this.hourHand;
+        }
+
+        Clock.prototype.hourHandFillCommand = function () {
+            return this.hourHandFillCommand;
+        }
+
+        Clock.prototype.setHourHandStyle = function (style) {
+            this.hourHandFillCommand.style = style;
+        }
+        Clock.prototype.setMinuteHandStyle = function (style) {
+            this.minuteHandFillCommand.style = style;
+        }
+
+        Clock.prototype.setCircleStyle = function (style) {
+            this.fillCommand.style = style;
+        }
+
+        Clock.prototype.getLastHours = function () {
+            return this.lastHours;
+        }
+
+        Clock.prototype.getMinutes = function () {
+            return this.minutes;
+        }
+
+        function getRandomColor() {
+            var letters = '0123456789ABCDEF'.split('');
+            var color = '#';
+            for (var i = 0; i < 6; i++) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+
+        function getHandsFromChar(thisChar) {
+            switch (thisChar) {
+                case '┌':
+                    jsonTime = '{"hours":0,"minutes":90}';
+                    break;
+                case '┐':
+                    jsonTime = '{"hours":90,"minutes":180}';
+                    break;
+                case '─':
+                    jsonTime = '{"hours":0,"minutes":180}';
+                    break;
+                case '└':
+                    jsonTime = '{"hours":270,"minutes":0}';
+                    break;
+                case '┘':
+                    jsonTime = '{"hours":270,"minutes":180}';
+                    break;
+                case '│':
+                    jsonTime = '{"hours":270,"minutes":90}';
+                    //console.log(thisChar);						
+                    break;
+                case '/':
+                    jsonTime = '{"hours":225,"minutes":225}';
+                    //console.log(thisChar);						
+                    break;
+                default:
+                    console.log("exception character:" + thisChar);
+                    break;
+            }
+            return jsonTime;
+
+        }
+    </script>
+
+</body>
+
+</html>
